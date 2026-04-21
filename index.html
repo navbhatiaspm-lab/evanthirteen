@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL - UNKNOWN SOURCE</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --system-blue: #0088ff;
+            --input-green: #39ff14;
+            --error-red: #ff003c;
+            --text-gray: #cccccc;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-gray);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* justify-content: center; */
+            min-height: 100vh;
+            margin: 0;
+            /* overflow: hidden; */
+			overflow-y: auto; 
+			overflow-x: hidden;
+			padding: 20px 0; /* Adds breathing room at top and bottom */
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            z-index: 3;
+            padding: 20px;
+        }
+
+        /* SHAKE ANIMATION */
+        .shake-effect {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) infinite;
+            transform: translate3d(0, 0, 0);
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* TIMER STYLE */
+        #timer {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--error-red);
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px var(--error-red);
+        }
+
+        .flash-fast { animation: fflash 0.3s ease-in-out infinite; }
+        @keyframes fflash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+
+        .flash-slow { animation: sflash 1s ease-in-out infinite; }
+        @keyframes sflash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+
+        .hidden { display: none !important; }
+
+        h1 { font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--error-red); margin-bottom: 30px; }
+        
+        button {
+            background: transparent;
+            color: var(--input-green);
+            border: 1px solid var(--input-green);
+            padding: 10px 20px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--input-green);
+            color: black;
+            box-shadow: 0 0 15px var(--input-green);
+        }
+
+        .grid {
+            display: grid; grid-template-columns: 50px 100px 100px 50px;
+            gap: 15px; align-items: center; justify-content: center; margin-bottom: 30px;
+        }
+
+        .row-num { color: #555; font-size: 0.8rem; text-align: right; }
+        input {
+            background: transparent; border: 2px solid; color: white;
+            padding: 8px; text-align: center; font-family: inherit; font-size: 1rem; width: 80px; outline: none;
+        }
+
+        /* .blue-box { border: 2px solid var(--system-blue); color: var(--system-blue); padding: 8px; width: 80px; } */
+		.blue-box { border-color: var(--system-blue); color: var(--system-blue); }
+        .green-box { border-color: var(--input-green); }
+        .error-box { border-color: var(--error-red) !important; color: var(--error-red) !important; }
+
+        .letter { font-weight: bold; font-size: 1.2rem; min-width: 20px; color: transparent; }
+        .letter.revealed { color: white; text-shadow: 0 0 8px white; }
+        .letter.wrong { color: var(--error-red); }
+
+        #passphrase-section { margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; }
+        #final-input { width: 80%; border-bottom: 1px solid var(--input-green); border-top: none; border-left: none; border-right: none; margin-bottom: 15px; }
+
+        .flicker { animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+    </style>
+	<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+	<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+    <div id="landing-page" class="container">
+        <h1 class="flicker">BEWARE EVAN.<br>CONTINUE IF YOU DARE.</h1>
+        <button onclick="showRiddle()">CONTINUE</button>
+    </div>
+
+    <div id="riddle-page" class="container hidden shake-effect">
+		<div id="sys-collapse" class="hidden flash-slow"><h1>!!!WARNING!!!<br>SYSTEM COLLAPSE IMMINENT<br>REBOOTING IN</h1></div>
+        <div id="timer" class="flash-fast">13:00</div>
+        <div class="grid" id="riddle-grid"></div>
+
+        <div id="passphrase-section" class="hidden">
+            <p>SEQUENCE COMPLETE. INPUT KEY PHRASE:</p>
+            <input type="text" id="final-input" placeholder="..." autocomplete="off">
+            <br><br>
+            <button onclick="checkPassphrase()">SUBMIT</button>
+        </div>
+    </div>
+
+    <div id="final-page" class="container hidden">
+        <h1 style="color: var(--input-green);">ACCESS GRANTED</h1>
+			<p style="font-style: italic; color: #fff; margin-top: 30px;">
+				"The crossing holds the key"</p>		
+		<div class="math-equations" style="margin-top: 20px; font-size: 2em;">
+			<p>\[ y = \frac{11}{15}x + \frac{1}{3} \]</p>
+			<br></br>
+			<p>\[ y = -\frac{4}{3}x + \frac{32}{3} \]</p>
+		</div>
+    </div>
+
+    <script>
+
+        // null means user must input.
+        const riddleData = [
+            { p: 37,   s: null }, // Row 1: Input Square
+            { p: 13,   s: 169  }, // Row 2: Fixed (Letter R)
+            { p: 23,   s: null }, // Row 3: Input Square
+            { p: 3,    s: 9    }, // Row 4: Fixed (Letter W)
+            { p: null, s: 121  }, // Row 5: Input Prime
+            { p: null, s: 49   }, // Row 6: Input Prime
+            { p: null, s: null }, // Row 7: Double Input (17, 289)
+            { p: null, s: 961  }, // Row 8: Input Prime
+            { p: 19,   s: 361  }, // Row 9: Fixed (Letter A)
+            { p: 2,    s: null }, // Row 10: Input Square
+            { p: null, s: 1681 }, // Row 11: Input Prime
+            { p: null, s: 25   }, // Row 12: Input Prime (Fixed 25)
+            { p: 29,   s: null }  // Row 13: Input Square
+        ];
+
+        const answers = {
+            1: { s: 1369 },
+            3: { s: 529 },
+            5: { p: 11 },
+            6: { p: 7 },
+            7: { p: 17, s: 289 },
+            8: { p: 31 },
+            10: { s: 4 },
+            11: { p: 41 },
+            12: { p: 5 },
+            13: { s: 841 }
+        };
+
+        const targetLetters = ["E", "R", "H", "W", "E", "A", "W", "T", "A", "N", "I", "C", "G"];
+        // Jumble Result: W-E-A-R-E-W-A-T-C-H-I-N-G (spread across rows)
+		
+        let timeLeft = 13 * 60; 
+        let timerInterval;
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                timerDisplay.innerText = `${minutes}:${seconds}`;
+
+                if (timeLeft <= 10) {
+					document.getElementById('sys-collapse').classList.remove('hidden');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    resetSite();
+                }
+                timeLeft--;
+            }, 1000);
+        }
+
+		//function showCollapse() {
+		//	let timeLeft = 10
+        //   document.getElementById('riddle-page').classList.add('hidden');
+        //    document.getElementById('sysfail-page').classList.remove('hidden');
+        //    startTimer();
+		//}
+		
+        function resetSite() {
+            //alert("SYSTEM COLLAPSE. REBOOTING...");
+			//let timeLeft = 10
+            //document.getElementById('riddle-page').classList.add('hidden');
+            //document.getElementById('sysfail-page').classList.remove('hidden');
+            //startTimer();
+            location.reload(); // Simplest way to return to landing page & reset everything
+        }
+
+        function showRiddle() {
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('riddle-page').classList.remove('hidden');
+            startTimer();
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('riddle-grid');
+            riddleData.forEach((row, index) => {
+                const id = index + 1;
+                grid.innerHTML += `<div class="row-num">${id}</div>`;
+
+                // Prime Column
+                if (row.p !== null) {
+                    grid.innerHTML += `<div class="blue-box">${row.p}</div>`;
+                } else {
+                    grid.innerHTML += `<input type="number" class="green-box" id="p-${id}" oninput="validate(${id})">`;
+                }
+
+                // Square Column
+                if (row.s !== null) {
+                    grid.innerHTML += `<div class="blue-box">${row.s}</div>`;
+                } else {
+                    grid.innerHTML += `<input type="number" class="green-box" id="s-${id}" oninput="validate(${id})">`;
+                }
+
+                // Letter Column
+                let initialChar = (id===2||id===4||id===9) ? targetLetters[index] : " ";
+                let classes = (id===2||id===4||id===9) ? "letter revealed" : "letter";
+                grid.innerHTML += `<div class="${classes}" id="l-${id}">${initialChar}</div>`;
+            });
+        }
+
+        function validate(id) {
+            const pInp = document.getElementById(`p-${id}`);
+            const sInp = document.getElementById(`s-${id}`);
+            const lDiv = document.getElementById(`l-${id}`);
+            
+            const pVal = pInp ? parseInt(pInp.value) : null;
+            const sVal = sInp ? parseInt(sInp.value) : null;
+            
+            const target = answers[id];
+            let isCorrect = true;
+
+            // Check if all required inputs for this row are present and correct
+            if (target.p !== undefined && pVal !== target.p) isCorrect = false;
+            if (target.s !== undefined && sVal !== target.s) isCorrect = false;
+
+            // Handle UI feedback
+            if (isCorrect) {
+                lDiv.innerText = targetLetters[id-1];
+                lDiv.classList.add('revealed');
+                lDiv.classList.remove('wrong');
+                if(pInp) pInp.classList.remove('error-box');
+                if(sInp) sInp.classList.remove('error-box');
+            } else {
+                // Show X only if user has typed something
+                if ((pInp && pInp.value !== "") || (sInp && sInp.value !== "")) {
+                    lDiv.innerText = "X";
+                    lDiv.classList.add('wrong');
+                    lDiv.classList.remove('revealed');
+                    if(pInp && pVal !== target.p && pInp.value !== "") pInp.classList.add('error-box');
+                    if(sInp && sVal !== target.s && sInp.value !== "") sInp.classList.add('error-box');
+                } else {
+                    lDiv.innerText = " ";
+                    lDiv.classList.remove('wrong', 'revealed');
+                }
+            }
+            checkAllSolved();
+        }
+
+		function checkAllSolved() {
+			const allSolved = Object.keys(answers).every(id => {
+				const target = answers[id];
+				const pInp = document.getElementById(`p-${id}`);
+				const sInp = document.getElementById(`s-${id}`);
+				
+				// Get values only if the input exists, otherwise treat as satisfied
+				//const pVal = pInp ? parseInt(pInp.value) : (target.p !== undefined ? null : target.p);
+				//const sVal = sInp ? parseInt(sInp.value) : (target.s !== undefined ? null : target.s);
+
+				//const pMatch = target.p === undefined || pVal === target.p;
+				//const sMatch = target.s === undefined || sVal === target.s;
+				
+				// Get the values
+				const pVal = pInp ? parseInt(pInp.value) : null;
+				const sVal = sInp ? parseInt(sInp.value) : null;
+
+				// Check against target
+				const pMatch = (target.p === undefined) || (pVal === target.p);
+				const sMatch = (target.s === undefined) || (sVal === target.s);
+		
+				return pMatch && sMatch;
+			});
+
+			if (allSolved) {
+				//document.getElementById('passphrase-section').classList.remove('hidden');
+				const passSection = document.getElementById('passphrase-section');
+				passSection.classList.remove('hidden');
+				
+				// Small timeout to allow the browser to render the removal of 'hidden'
+				setTimeout(() => {
+					passSection.scrollIntoView({ 
+						behavior: 'smooth', 
+						block: 'start' 
+					});
+				}, 100);
+			}
+		}
+
+        function checkPassphrase() {
+            const val = document.getElementById('final-input').value.toLowerCase().trim();
+            if (val === "we are watching") {
+                clearInterval(timerInterval); // Stop the timer
+                document.getElementById('riddle-page').classList.add('hidden');
+                document.getElementById('final-page').classList.remove('hidden');
+            } else {
+                alert("INVALID CREDENTIALS");
+            }
+        }
+    </script>
+</body>
+</html>
